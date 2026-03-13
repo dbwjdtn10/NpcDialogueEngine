@@ -1,0 +1,166 @@
+{
+  "version": "1.0",
+  "description": "NPC 대화 엔진 RAG 평가 데이터셋",
+  "qa_pairs": [
+    {
+      "id": "lore_01",
+      "category": "lore",
+      "question": "아스테리아 세계는 어떻게 만들어졌어?",
+      "expected_answer": "네 명의 원초 정령 이그니스(불), 아쿠아(물), 테라(땅), 벤투스(바람)이 혼돈의 원소 에너지를 다스려 세계의 틀을 만들었으며, 네 정령의 힘이 균형을 이루는 지점에 생명이 태어났다.",
+      "relevant_docs": ["lore/history.md"],
+      "npc_id": null
+    },
+    {
+      "id": "lore_02",
+      "category": "lore",
+      "question": "어둠의 결사는 누가 만들었어?",
+      "expected_answer": "마법 아카데미의 대마법사 벨로크가 금지된 어둠의 마법을 연구하다 폭주한 후 동조자들을 모아 어둠의 결사를 창설했다.",
+      "relevant_docs": ["lore/history.md"],
+      "npc_id": null
+    },
+    {
+      "id": "lore_03",
+      "category": "lore",
+      "question": "드워프 동맹은 언제 맺어졌어?",
+      "expected_answer": "약 450년 전에 드래곤릿지 산맥에 거주하던 드워프 씨족들이 아스테리아 왕국과 공식 동맹을 맺었다.",
+      "relevant_docs": ["lore/history.md"],
+      "npc_id": null
+    },
+    {
+      "id": "lore_04",
+      "category": "lore",
+      "question": "실버레이크의 물은 어떤 특성이 있어?",
+      "expected_answer": "실버레이크의 물은 마법적 성질을 지니고 있어 포션 제조와 마법 부여에 필수적인 재료가 된다.",
+      "relevant_docs": ["lore/history.md", "lore/geography.md"],
+      "npc_id": null
+    },
+    {
+      "id": "lore_05",
+      "category": "lore",
+      "question": "벨로크는 어떻게 봉인되었어?",
+      "expected_answer": "엘프 대마법사 실바리온과 인간 기사단장 에릭이 합동 작전으로 벨로크를 드래곤릿지 산맥 깊은 곳에 네 원소의 힘을 모두 사용하여 봉인했다.",
+      "relevant_docs": ["lore/history.md"],
+      "npc_id": null
+    },
+    {
+      "id": "npc_01",
+      "category": "npc",
+      "question": "가론은 누구에게 대장장이 기술을 배웠어?",
+      "expected_answer": "가론은 15세 때 드래곤릿지 산맥의 드워프 장로 토린에게 찾아가 3년간 드워프 단조 기술을 전수받았다.",
+      "relevant_docs": ["npcs/blacksmith_garon.md"],
+      "npc_id": "blacksmith_garon"
+    },
+    {
+      "id": "npc_02",
+      "category": "npc",
+      "question": "가론과 엘라라는 어떤 사이야?",
+      "expected_answer": "가론과 엘라라는 오랜 친구로, 20년 전 전쟁에서 가론이 어깨에 부상을 입었을 때 엘라라의 치유 마법 덕에 목숨을 건졌다. 엘라라가 마법 부여를 해주고 가론이 무기를 만드는 협력 관계이다.",
+      "relevant_docs": ["npcs/blacksmith_garon.md", "npcs/witch_elara.md"],
+      "npc_id": "blacksmith_garon"
+    },
+    {
+      "id": "npc_03",
+      "category": "npc",
+      "question": "테인은 어떤 사람이야?",
+      "expected_answer": "테인은 경비대장으로, 20년 전 어둠의 결사와의 전투에서 가론과 함께 싸운 전우이다. 말수가 적지만 가론과 눈빛만으로 통하는 깊은 전우애를 가지고 있다.",
+      "relevant_docs": ["npcs/guard_captain_thane.md", "npcs/blacksmith_garon.md"],
+      "npc_id": "guard_captain_thane"
+    },
+    {
+      "id": "npc_04",
+      "category": "npc",
+      "question": "리코는 주로 어떤 일을 해?",
+      "expected_answer": "리코는 상인으로, 가론과는 거래처이자 술친구 관계이다. 희귀한 광석이나 재료를 가져오면 가론이 우선적으로 매입해준다.",
+      "relevant_docs": ["npcs/merchant_rico.md", "npcs/blacksmith_garon.md"],
+      "npc_id": "merchant_rico"
+    },
+    {
+      "id": "npc_05",
+      "category": "npc",
+      "question": "가론이 만들 수 있는 장비 등급은?",
+      "expected_answer": "가론은 일반 등급부터 희귀 등급까지의 장비를 제작할 수 있으며, 전설 등급은 드래곤 오어 같은 특수 재료가 있어야 제작 가능하다.",
+      "relevant_docs": ["npcs/blacksmith_garon.md"],
+      "npc_id": "blacksmith_garon"
+    },
+    {
+      "id": "quest_01",
+      "category": "quest",
+      "question": "전설의 검 재련 퀘스트는 어떻게 시작해?",
+      "expected_answer": "아이언포지 마을의 철의 주점에서 상인 리코와 대화하면 드래곤릿지에서 드래곤 울음소리가 들렸다는 소문을 듣게 되며, 리코가 대장장이 가론에게 가보라고 안내한다.",
+      "relevant_docs": ["quests/main_quest_01.md"],
+      "npc_id": "merchant_rico"
+    },
+    {
+      "id": "quest_02",
+      "category": "quest",
+      "question": "드래곤 오어는 어디서 구할 수 있어?",
+      "expected_answer": "드래곤릿지 산맥의 '용의 둥지'라 불리는 곳에서 드래곤 오어 3개를 채취할 수 있다. 경비대장 테인에게 통행증을 받아야 한다.",
+      "relevant_docs": ["quests/main_quest_01.md"],
+      "npc_id": "blacksmith_garon"
+    },
+    {
+      "id": "quest_03",
+      "category": "quest",
+      "question": "전설의 검 이름이 뭐야?",
+      "expected_answer": "완성된 전설의 검 이름은 '드래곤슬레이어'로, 드래곤의 화염과 대장장이의 혼, 엘라라의 마법이 하나가 된 검이다. 어둠의 마법 피해 50% 추가와 불 원소 부여 효과가 있다.",
+      "relevant_docs": ["quests/main_quest_01.md"],
+      "npc_id": "blacksmith_garon"
+    },
+    {
+      "id": "quest_04",
+      "category": "quest",
+      "question": "전설의 검을 만드는데 얼마나 걸려?",
+      "expected_answer": "가론이 드래곤 오어를 받은 후 게임 내 3일이 소요된다. 그 사이에 엘라라에게 마법 부여를 부탁해야 한다.",
+      "relevant_docs": ["quests/main_quest_01.md"],
+      "npc_id": "blacksmith_garon"
+    },
+    {
+      "id": "quest_05",
+      "category": "quest",
+      "question": "드래곤릿지 통행증은 누가 발급해줘?",
+      "expected_answer": "경비대장 테인이 드래곤릿지 통행증을 발급해주며, 전초기지까지 호위 병사 2명을 배치해준다.",
+      "relevant_docs": ["quests/main_quest_01.md"],
+      "npc_id": "guard_captain_thane"
+    },
+    {
+      "id": "item_01",
+      "category": "item",
+      "question": "철제 롱소드는 얼마야?",
+      "expected_answer": "철제 롱소드는 100 골드이며, 가론의 대장간이나 리코의 이동 상점에서 구매할 수 있다. 일반 등급의 한손검이다.",
+      "relevant_docs": ["items/weapons.md"],
+      "npc_id": "blacksmith_garon"
+    },
+    {
+      "id": "item_02",
+      "category": "item",
+      "question": "강화 강철 대검의 특수 효과가 뭐야?",
+      "expected_answer": "강화 강철 대검은 우수 등급 양손검으로, 방어력 관통 10%의 특수 효과가 있다. 가격은 350 골드이다.",
+      "relevant_docs": ["items/weapons.md"],
+      "npc_id": "blacksmith_garon"
+    },
+    {
+      "id": "item_03",
+      "category": "item",
+      "question": "바람의 단검은 어떤 무기야?",
+      "expected_answer": "바람의 단검은 우수 등급의 단검으로, 공격력이 낮음에서 중간 정도이다.",
+      "relevant_docs": ["items/weapons.md"],
+      "npc_id": "blacksmith_garon"
+    },
+    {
+      "id": "item_04",
+      "category": "item",
+      "question": "초보 모험가에게 추천하는 무기는?",
+      "expected_answer": "철제 롱소드가 균형이 좋고 초보 모험가에게 추천된다. 가론의 대장간에서 100 골드에 구매할 수 있다.",
+      "relevant_docs": ["items/weapons.md"],
+      "npc_id": "blacksmith_garon"
+    },
+    {
+      "id": "item_05",
+      "category": "item",
+      "question": "드래곤슬레이어의 특수 효과는?",
+      "expected_answer": "드래곤슬레이어는 전설 등급 검으로, 어둠의 마법 피해 50% 추가와 불 원소 부여 효과가 있다. 드래곤 오어로 단조하고 원소 마법을 부여했다.",
+      "relevant_docs": ["quests/main_quest_01.md", "items/weapons.md"],
+      "npc_id": "blacksmith_garon"
+    }
+  ]
+}
