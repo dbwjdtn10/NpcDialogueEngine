@@ -112,6 +112,54 @@ class DialogueEngine:
             )
         return self._llm
 
+    async def _invoke_llm_with_retry(
+        self,
+        messages: list,
+        max_retries: int = 3,
+    ) -> str:
+        """Invoke the LLM with exponential backoff retry and circuit breaker.
+
+        Returns the generated text content on success.
+        Raises the last exception after all retries are exhausted.
+        """
+        import asyncio
+        import random
+
+        from src.api.circuit_breaker import llm_breaker
+
+        last_exc: Exception | None = None
+
+        for attempt in range(max_retries + 1):
+            if not llm_breaker.allow_request():
+                raise RuntimeError(
+                    f"Circuit breaker [{llm_breaker.name}] is open — "
+                    "LLM service temporarily unavailable"
+                )
+
+            try:
+                response = await self.llm.ainvoke(messages)
+                llm_breaker.record_success()
+                return response.content.strip()
+            except Exception as exc:
+                last_exc = exc
+                llm_breaker.record_failure()
+
+                if attempt == max_retries:
+                    break
+
+                delay = min(1.0 * (2 ** attempt), 15.0)
+                delay *= 0.5 + random.random()  # jitter
+                logger.warning(
+                    "LLM call attempt %d/%d failed (%s), retrying in %.1fs...",
+                    attempt + 1,
+                    max_retries + 1,
+                    type(exc).__name__,
+                    delay,
+                )
+                await asyncio.sleep(delay)
+
+        raise last_exc  # type: ignore[misc]
+
     def build_system_prompt(
         self,
         rag_context: str = "",
@@ -277,10 +325,9 @@ class DialogueEngine:
         ]
 
         try:
-            response = await self.llm.ainvoke(messages)
-            npc_message = response.content.strip()
+            npc_message = await self._invoke_llm_with_retry(messages)
         except Exception as e:
-            logger.error("LLM generation failed: %s", e)
+            logger.error("LLM generation failed after retries: %s", e)
             npc_message = self.persona.fallback_response or (
                 f"({self.persona.name}이(가) 잠시 생각에 잠깁니다...)"
             )

@@ -9,6 +9,7 @@ from typing import AsyncGenerator
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from src.api.logging_config import setup_logging
 from src.config import settings
 from src.npc.persona import NPCPersona, PersonaLoader
 from src.quest.tracker import QuestTracker
@@ -55,6 +56,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan context manager for startup/shutdown."""
     global _persona_registry
 
+    setup_logging()
     logger.info("Starting NPC Dialogue Engine...")
 
     # 1. Initialize ChromaDB / run ingestion if needed
@@ -114,11 +116,16 @@ def create_app() -> FastAPI:
     )
 
     # CORS middleware for React frontend
+    cors_origins = [
+        origin.strip()
+        for origin in settings.CORS_ORIGINS.split(",")
+        if origin.strip()
+    ]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Restrict in production
+        allow_origins=cors_origins,
         allow_credentials=True,
-        allow_methods=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allow_headers=["*"],
     )
 
@@ -126,16 +133,22 @@ def create_app() -> FastAPI:
     from src.api.middleware import register_middleware
     register_middleware(app)
 
+    # Standardized exception handlers
+    from src.api.exceptions import register_exception_handlers
+    register_exception_handlers(app)
+
     # Include routers
     from src.api.routes.chat import router as chat_router
     from src.api.routes.npc import router as npc_router
     from src.api.routes.quest import router as quest_router
     from src.api.routes.admin import router as admin_router
+    from src.api.routes.monitoring import router as monitoring_router
 
     app.include_router(chat_router)
     app.include_router(npc_router)
     app.include_router(quest_router)
     app.include_router(admin_router)
+    app.include_router(monitoring_router)
 
     @app.get("/health")
     async def health_check() -> dict[str, str]:

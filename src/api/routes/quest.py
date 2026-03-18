@@ -5,9 +5,9 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Query
 
-from src.api.schemas import QuestStatus
+from src.api.schemas import PaginatedResponse, QuestStatus
 
 logger = logging.getLogger(__name__)
 
@@ -36,12 +36,17 @@ def _get_quest_tracker():
     return get_quest_tracker()
 
 
-@router.get("", response_model=list[QuestStatus])
-async def list_quests() -> list[dict[str, Any]]:
-    """List all quests with their current progress.
+@router.get("", response_model=PaginatedResponse[QuestStatus])
+async def list_quests(
+    skip: int = Query(0, ge=0, description="Number of items to skip"),
+    limit: int = Query(20, ge=1, le=100, description="Max items to return"),
+    status_filter: str | None = Query(None, description="Filter by status: not_started, active, completed"),
+) -> dict[str, Any]:
+    """List all quests with their current progress (paginated).
 
     Returns every known quest (both from metadata and any the player
     has interacted with) along with status and progress percentage.
+    Supports offset-based pagination and optional status filtering.
     """
     tracker = _get_quest_tracker()
     all_quests = tracker.get_all_quests()
@@ -75,7 +80,20 @@ async def list_quests() -> list[dict[str, Any]]:
             "related_npcs": [],
         })
 
-    return results
+    # Apply status filter
+    if status_filter:
+        results = [q for q in results if q["status"] == status_filter]
+
+    total = len(results)
+    paginated = results[skip : skip + limit]
+
+    return {
+        "items": paginated,
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "has_more": (skip + limit) < total,
+    }
 
 
 @router.get("/{quest_id}", response_model=QuestStatus)
@@ -95,7 +113,12 @@ async def get_quest_detail(quest_id: str) -> dict[str, Any]:
     progress = tracker.get_progress(quest_id)
 
     if not meta and status.value == "not_started":
-        raise HTTPException(status_code=404, detail=f"Quest '{quest_id}' not found.")
+        from src.api.exceptions import APIError, ErrorCode
+        raise APIError(
+            code=ErrorCode.QUEST_NOT_FOUND,
+            message=f"Quest '{quest_id}' not found.",
+            status_code=404,
+        )
 
     return {
         "quest_id": quest_id,

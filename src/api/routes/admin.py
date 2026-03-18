@@ -1,18 +1,59 @@
-"""Admin and evaluation REST API endpoints."""
+"""Admin and evaluation REST API endpoints.
+
+Admin endpoints are protected by an API key passed via the
+``X-API-Key`` header.  The expected key is read from the
+``ADMIN_API_KEY`` setting (environment variable).  When the
+setting is empty (default), admin endpoints are **open** to
+allow local development without friction.
+"""
 
 from __future__ import annotations
 
 import logging
+import secrets
 from typing import Any
 
-from fastapi import APIRouter, BackgroundTasks
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, Security
+from fastapi.security import APIKeyHeader
 
 from src.api.schemas import EvaluationReport
+from src.config import settings
 from src.rag.ingestion import IngestionPipeline
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(tags=["admin"])
+# ---------------------------------------------------------------------------
+# API Key authentication dependency
+# ---------------------------------------------------------------------------
+
+_api_key_header = APIKeyHeader(name="X-API-Key", auto_error=False)
+
+
+async def verify_admin_api_key(
+    api_key: str | None = Security(_api_key_header),
+) -> str:
+    """Validate the admin API key from the request header.
+
+    When ``ADMIN_API_KEY`` is not configured the check is skipped so
+    that local development works out of the box.
+    """
+    expected = settings.ADMIN_API_KEY
+    if not expected:
+        # No key configured → allow all (development mode)
+        return "dev"
+
+    if api_key is None or not secrets.compare_digest(api_key, expected):
+        raise HTTPException(
+            status_code=403,
+            detail="Invalid or missing admin API key.",
+        )
+    return api_key
+
+
+router = APIRouter(
+    tags=["admin"],
+    dependencies=[Depends(verify_admin_api_key)],
+)
 
 
 @router.post("/api/v1/admin/reload")

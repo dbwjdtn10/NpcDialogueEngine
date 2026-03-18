@@ -5,22 +5,25 @@ from __future__ import annotations
 import logging
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 
-from src.api.schemas import NPCProfile
-from src.npc.affinity import AffinityManager, BEHAVIOR_MODIFIERS
+from src.api.schemas import NPCProfile, PaginatedResponse
+from src.npc.affinity import AffinityManager
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/npcs", tags=["npcs"])
 
 
-@router.get("", response_model=list[NPCProfile])
-async def list_npcs() -> list[dict[str, Any]]:
-    """List all loaded NPCs with their current state.
+@router.get("", response_model=PaginatedResponse[NPCProfile])
+async def list_npcs(
+    skip: int = Query(0, ge=0, description="Number of items to skip"),
+    limit: int = Query(20, ge=1, le=100, description="Max items to return"),
+) -> dict[str, Any]:
+    """List all loaded NPCs with their current state (paginated).
 
     Returns basic profile information for every NPC currently loaded
-    in the persona registry.
+    in the persona registry with offset-based pagination.
     """
     from src.api.main import get_persona_registry
 
@@ -40,7 +43,16 @@ async def list_npcs() -> list[dict[str, Any]]:
             "unlocked_features": [],
         })
 
-    return results
+    total = len(results)
+    paginated = results[skip : skip + limit]
+
+    return {
+        "items": paginated,
+        "total": total,
+        "skip": skip,
+        "limit": limit,
+        "has_more": (skip + limit) < total,
+    }
 
 
 @router.get("/{npc_id}/profile", response_model=NPCProfile)
@@ -60,8 +72,12 @@ async def get_npc_profile(npc_id: str) -> dict[str, Any]:
     persona = personas.get(npc_id)
 
     if persona is None:
-        from fastapi import HTTPException
-        raise HTTPException(status_code=404, detail=f"NPC '{npc_id}' not found.")
+        from src.api.exceptions import APIError, ErrorCode
+        raise APIError(
+            code=ErrorCode.NPC_NOT_FOUND,
+            message=f"NPC '{npc_id}' not found.",
+            status_code=404,
+        )
 
     # Determine unlocked features at default affinity
     affinity_mgr = AffinityManager()

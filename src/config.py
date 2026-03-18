@@ -39,6 +39,16 @@ class Settings(BaseSettings):
     # Session
     SESSION_TIMEOUT_MINUTES: int = 30
 
+    # Rate limiting
+    RATE_LIMIT_MAX_REQUESTS: int = 60
+    RATE_LIMIT_WINDOW_SECONDS: int = 60
+
+    # CORS
+    CORS_ORIGINS: str = "http://localhost:5173,http://localhost:3000"
+
+    # Admin authentication (empty = open for local development)
+    ADMIN_API_KEY: str = ""
+
     model_config = {
         "env_file": ".env",
         "env_file_encoding": "utf-8",

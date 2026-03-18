@@ -2,9 +2,21 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any, Generic, Optional, TypeVar
 
 from pydantic import BaseModel, Field
+
+T = TypeVar("T")
+
+
+class PaginatedResponse(BaseModel, Generic[T]):
+    """Generic paginated list response with offset-based pagination."""
+
+    items: list[T] = Field(default_factory=list, description="Page of results")
+    total: int = Field(..., description="Total number of items")
+    skip: int = Field(0, ge=0, description="Number of items skipped")
+    limit: int = Field(20, ge=1, le=100, description="Page size")
+    has_more: bool = Field(False, description="Whether more items exist beyond this page")
 
 
 class ChatMessage(BaseModel):
