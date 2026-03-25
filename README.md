@@ -8,6 +8,9 @@
 [![Docker](https://img.shields.io/badge/Docker-One--Click_Deploy-2496ED?logo=docker&logoColor=white)](https://docker.com)
 [![React](https://img.shields.io/badge/React-TypeScript-61DAFB?logo=react&logoColor=black)](https://react.dev)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![CI](https://img.shields.io/badge/CI-GitHub_Actions-2088FF?logo=githubactions&logoColor=white)](https://github.com/features/actions)
+[![Prometheus](https://img.shields.io/badge/Prometheus-Metrics-E6522C?logo=prometheus&logoColor=white)](https://prometheus.io)
+[![Grafana](https://img.shields.io/badge/Grafana-Dashboard-F46800?logo=grafana&logoColor=white)](https://grafana.com)
 
 ---
 
@@ -209,6 +212,82 @@ NPC 간 정보가 공유되어 **살아있는 세계관**을 연출합니다.
 
 ---
 
+## 🏭 프로덕션 인프라 (v0.2)
+
+v0.2에서 보안, 관측성, 복원력, API 품질, DevOps 5개 영역의 프로덕션 수준 인프라를 추가했습니다.
+
+### 보안 (Security)
+
+| 기능 | 구현 | 설명 |
+|------|------|------|
+| **Rate Limiting** | 슬라이딩 윈도우 카운터 | IP별 60req/60s, 초과 시 `429` + `Retry-After` |
+| **Security Headers** | OWASP 6종 | XSS, 클릭재킹, MIME 스니핑 방지 등 |
+| **Admin API Key** | `X-API-Key` 헤더 인증 | `secrets.compare_digest()` 타이밍 공격 방지 |
+| **CORS 강화** | 환경변수 화이트리스트 | `allow_origins=["*"]` 제거, 명시적 허용 |
+| **GZip 압축** | 500B 이상 자동 압축 | 응답 크기 절감 |
+
+### 관측성 (Observability)
+
+```
+Request → [Correlation ID 부여] → [Structured JSON Logging] → [Prometheus 메트릭 수집]
+                                                                      │
+                                                              ┌───────▼────────┐
+                                                              │   Prometheus   │
+                                                              │   (15s 스크랩)  │
+                                                              └───────┬────────┘
+                                                                      │
+                                                              ┌───────▼────────┐
+                                                              │    Grafana     │
+                                                              │   Dashboard   │
+                                                              └────────────────┘
+```
+
+- **Prometheus 메트릭**: `http_requests_total`, `http_request_duration_seconds`, `websocket_connections_active`, `dialogue_pipeline_duration_seconds`
+- **구조화 JSON 로깅**: 타임스탬프, 레벨, 모듈, 함수, 라인 포함 — `LOG_FORMAT=json|text` 전환 가능
+- **Correlation ID**: 모든 요청에 `X-Request-ID` UUID 자동 부여, 분산 추적 연계 지원
+- **상세 헬스체크**: `GET /health/detailed` — Redis, PostgreSQL, ChromaDB 연결 상태 + 지연시간 + Circuit Breaker 상태
+
+### 복원력 (Resilience)
+
+```
+LLM API 호출
+    │
+    ▼
+┌─ Circuit Breaker ─────────────────────────┐
+│  CLOSED ──(연속 5회 실패)──→ OPEN          │
+│    ▲                          │ (60s 대기)│
+│    │                          ▼           │
+│    └──(성공)──── HALF_OPEN ◄──┘           │
+└───────────────────────────────────────────┘
+    │
+    ▼
+┌─ Retry with Backoff ──────────────────────┐
+│  1차 시도 → (1s) → 2차 → (2s) → 3차      │
+│  + Jitter로 thundering herd 방지          │
+└───────────────────────────────────────────┘
+    │
+    ▼ (모두 실패 시)
+NPC 캐릭터별 폴백 응답
+```
+
+- **Circuit Breaker**: Redis(3회/15s), PostgreSQL(3회/30s), LLM API(5회/60s) 서비스별 독립 구성
+- **WebSocket Heartbeat**: 30초 간격 ping/pong, 40초 무응답 시 자동 연결 종료
+
+### API 품질
+
+- **Pagination**: `skip`/`limit` 파라미터 + `has_more` 필드 — NPC 목록, Quest 목록 적용
+- **표준 에러 응답**: 에러 코드 카탈로그 (`NPC_NOT_FOUND`, `RATE_LIMITED`, `LLM_UNAVAILABLE` 등) + `request_id` 포함
+- **글로벌 에러 핸들러**: `APIError`, `HTTPException`, `RequestValidationError` 통합 처리
+
+### DevOps
+
+- **GitHub Actions CI**: lint(ruff) → test(pytest) / docker-build 3-Job 병렬 파이프라인
+- **Alembic Migration**: Async PostgreSQL 지원, 초기 스키마 7테이블 + 6인덱스
+- **Makefile**: `make dev`, `make test`, `make lint`, `make migrate` 등 원커맨드 개발 환경
+- **Pre-commit**: ruff lint/format, trailing whitespace, large file 감지, private key 감지
+
+---
+
 ## 🛠️ 기술 스택
 
 | 카테고리 | 기술 | 선택 근거 |
@@ -223,8 +302,12 @@ NPC 간 정보가 공유되어 **살아있는 세계관**을 연출합니다.
 | **Cache/Session** | Redis 7 | 단기 기억 + 시맨틱 캐시를 단일 인프라로 |
 | **Database** | PostgreSQL 16 | 장기 기억 + 호감도/퀘스트 상태 영속화 |
 | **Frontend** | React + TypeScript + Vite | 타입 안전성 + 빠른 개발 |
-| **Container** | Docker Compose | 4개 서비스 원클릭 배포 |
-| **Monitoring** | LangSmith (optional) | LLM 호출 추적 + 프롬프트 디버깅 |
+| **Container** | Docker Compose | 6개 서비스 원클릭 배포 (앱 + DB + 모니터링) |
+| **Monitoring** | Prometheus + Grafana | HTTP/WebSocket/Pipeline 메트릭 수집 + 대시보드 |
+| **Tracing** | LangSmith (optional) | LLM 호출 추적 + 프롬프트 디버깅 |
+| **CI/CD** | GitHub Actions | lint → test → docker-build 자동화 |
+| **Migration** | Alembic | Async PostgreSQL 스키마 관리 |
+| **Linter** | Ruff + Pre-commit | 코드 품질 + 커밋 전 자동 검사 |
 
 ---
 
@@ -239,7 +322,7 @@ NPC 간 정보가 공유되어 **살아있는 세계관**을 연출합니다.
 
 ```bash
 # 1. 클론
-git clone https://github.com/your-username/npc-dialogue-engine.git
+git clone https://github.com/dbwjdtn10/npc-dialogue-engine.git
 cd npc-dialogue-engine
 
 # 2. 환경변수 설정
@@ -281,11 +364,19 @@ npc-dialogue-engine/
 │   │   ├── main.py                   # 앱 팩토리 + 라이프사이클
 │   │   ├── guard.py                  # 3단계 프롬프트 인젝션 방어
 │   │   ├── schemas.py                # Pydantic 요청/응답 모델
+│   │   ├── middleware.py             # Security Headers + Correlation ID + GZip
+│   │   ├── rate_limiter.py           # 슬라이딩 윈도우 Rate Limiting
+│   │   ├── metrics.py                # Prometheus 메트릭 수집
+│   │   ├── logging_config.py         # 구조화 JSON 로깅
+│   │   ├── circuit_breaker.py        # Circuit Breaker 패턴
+│   │   ├── retry.py                  # Exponential Backoff 재시도
+│   │   ├── exceptions.py             # 표준 에러 응답 체계
 │   │   └── routes/
 │   │       ├── chat.py               # WebSocket /ws/chat/{npc_id}
 │   │       ├── npc.py                # NPC 정보 엔드포인트
 │   │       ├── quest.py              # 퀘스트 상태 엔드포인트
-│   │       └── admin.py              # 관리자 (세계관 리로드)
+│   │       ├── admin.py              # 관리자 (API Key 인증)
+│   │       └── monitoring.py         # /health/detailed + /metrics
 │   │
 │   ├── npc/                          # NPC 대화 & 상태 시스템
 │   │   ├── dialogue.py               # 8단계 대화 파이프라인 오케스트레이터
@@ -350,9 +441,20 @@ npc-dialogue-engine/
 │   ├── evaluate.py                   # 평가 파이프라인 실행
 │   └── ingest.py                     # 세계관 문서 인제스트
 │
+├── alembic/                          # DB 마이그레이션 (v0.2)
+│   ├── env.py                        # Async PostgreSQL 환경
+│   └── versions/                     # 마이그레이션 스크립트
+│
+├── monitoring/                       # 모니터링 스택 (v0.2)
+│   ├── prometheus.yml                # Prometheus 스크래핑 설정
+│   └── grafana/                      # Grafana 데이터소스 프로비저닝
+│
+├── .github/workflows/ci.yml         # GitHub Actions CI (v0.2)
 ├── docs/                             # 문서
-├── docker-compose.yml                # 4개 서비스 오케스트레이션
+├── docker-compose.yml                # 6개 서비스 오케스트레이션
 ├── Dockerfile                        # 멀티스테이지 빌드
+├── Makefile                          # 개발 편의 명령어 (v0.2)
+├── .pre-commit-config.yaml           # Pre-commit 훅 (v0.2)
 └── pyproject.toml                    # Python 패키지 설정
 ```
 
@@ -492,6 +594,51 @@ quest_progress     -- 퀘스트 진행률 (0-100%)
 | **NPC Profile** | 현재 감정 상태, 호감도 레벨, 잠금 해제 콘텐츠 |
 | **Quest Panel** | 활성 퀘스트 목록, 진행률, 힌트 표시 |
 | **World Map** | NPC 위치 시각화, 클릭으로 NPC 선택 |
+
+---
+
+## 🔄 미들웨어 실행 순서
+
+```
+Request
+  │
+  ▼
+GZipMiddleware              ← 응답 압축
+  │
+  ▼
+ErrorHandlingMiddleware     ← 예외 → JSON 에러 응답
+  │
+  ▼
+SecurityHeadersMiddleware   ← OWASP 보안 헤더 6종
+  │
+  ▼
+RateLimitMiddleware         ← IP별 요청 제한 (429)
+  │
+  ▼
+MetricsMiddleware           ← Prometheus 카운터/히스토그램
+  │
+  ▼
+RequestLoggingMiddleware    ← Correlation ID + 구조화 로깅
+  │
+  ▼
+Route Handler               ← 비즈니스 로직
+```
+
+---
+
+## 🔄 회고 및 개선점
+
+### 잘한 점
+- **8단계 파이프라인 설계**: 각 단계를 독립 모듈로 분리한 덕분에 개별 컴포넌트(감정 시스템, RAG, 보안 필터)를 독립적으로 테스트하고 교체할 수 있었습니다.
+- **3중 보안 레이어**: Rule-Based → LLM Classification → Output Verification 순서로 비용 효율적인 방어 체계를 구축했습니다. 정규식 필터가 대부분의 공격을 차단하여 LLM 호출 비용을 절감합니다.
+- **Hybrid RAG**: Vector + BM25 + Cross-Encoder 조합으로 한국어 세계관 검색 정확도를 크게 향상시켰습니다. 특히 Kiwi 형태소 분석기 도입이 한국어 BM25 성능에 결정적이었습니다.
+
+### 개선이 필요한 점
+- **응답 지연 시간**: 8단계 순차 처리로 인해 첫 응답까지 2-3초가 걸립니다. 보안 필터와 의도 분류를 병렬 처리하거나, 스트리밍 응답을 더 적극 활용하면 체감 속도를 개선할 수 있습니다.
+- **감정 시스템 고도화**: 현재 턴 기반 감쇠만 있고 시간 기반 감쇠는 없습니다. 플레이어가 오래 떠났다 돌아왔을 때 감정 상태가 자연스럽게 리셋되는 로직이 필요합니다.
+- **평가 자동화**: 자가 평가 루프(Persona Consistency, Hallucination Check)가 있지만, 정량적 벤치마크 데이터셋이 부족합니다. Golden Dataset을 확충하여 회귀 테스트를 강화해야 합니다.
+- **실제 게임 엔진 통합**: 현재 웹 데모 수준이라 Unity/Godot 게임 내에서 실시간으로 동작하는 SDK 형태의 통합이 다음 목표입니다.
+- **멀티턴 대화 요약 최적화**: 장기 기억 요약 시 LLM을 호출하는데, 대화가 많아지면 비용이 증가합니다. 경량 요약 모델(distilBART 등)로 대체를 고려 중입니다.
 
 ---
 
